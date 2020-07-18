@@ -1,0 +1,79 @@
+final_df = merge_test([benign, mirai_ack, mirai_scan, mirai_syn, mirai_udp, mirai_udpplain, 
+                         gafgyt_combo, gafgyt_junk, gafgyt_scan, gafgyt_tcp, gafgyt_udp])
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC, LinearSVC
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.linear_model import Perceptron
+from sklearn.linear_model import SGDClassifier
+from sklearn.tree import DecisionTreeClassifier
+from imblearn.over_sampling import SMOTE
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+
+
+X = final_df.drop('target_class', axis=1)
+y = final_df['target_class']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2, random_state=63)
+
+ss = StandardScaler()
+
+ss.fit(X_train)
+X_train_scaled = ss.transform(X_train)
+X_test_scaled = ss.transform(X_test)
+
+pca = PCA(.95)
+
+X_train_pca = pca.transform(X_train_scaled)
+X_test_pca = pca.transform(X_test_scaled)
+
+os = SMOTE(random_state=63)
+
+os_X, os_y = os.fit_sample(X_train_pca, y_train)
+
+X_train_final = pd.DataFrame(os_X)
+y_train_final = os_y.to_frame()
+
+svc = SVC()
+knn = KNeighborsClassifier()
+gaussian = GaussianNB()
+sgd = SGDClassifier()
+decision_tree = DecisionTreeClassifier()
+random_forest = RandomForestClassifier(n_estimators = 100)
+
+knn.fit(X_train_final, y_train_final)
+y_pred_knn = knn.predict(X_test_pca)
+acc_knn = round(knn.score(X_train_final, y_train_final) * 100, 2)
+acc_knn
+
+gaussian.fit(X_train_final, y_train_final)
+y_pred_gaussian = gaussian.predict(X_test_pca)
+acc_gaussian = round(gaussian.score(X_train_final, y_train_final) * 100, 2)
+acc_gaussian
+
+sgd.fit(X_train_final, y_train_final)
+y_pred_sgd = sgd.predict(X_test_pca)
+acc_sgd = round(sgd.score(X_train_final, y_train_final) * 100, 2)
+acc_sgd
+
+decision_tree.fit(X_train_final, y_train_final)
+y_pred_dt = decision_tree.predict(X_test_pca)
+acc_dt = round(decision_tree.score(X_train_final, y_train_final) * 100, 2)
+acc_dt
+
+random_forest.fit(X_train_final, y_train_final)
+y_pred_rf = random_forest.predict(X_test_pca)
+acc_rf = round(random_forest.score(X_train_final, y_train_final) * 100, 2)
+acc_rf
+
+print(classification_report(y_test, y_pred_knn))
+print(classification_report(y_test, y_pred_gaussian))
+print(classification_report(y_test, y_pred_sgd))
+print(classification_report(y_test, y_pred_dt))
+print(classification_report(y_test, y_pred_rf))
